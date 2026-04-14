@@ -39,7 +39,7 @@
     "react-markdown": "^9.0.1",
     "react-modal": "^3.16.3",
     "react-router-dom": "^6.21.1",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "react-split": "^2.0.14",
     "react-three-fiber": "^6.0.13",
     "react-tilt": "^1.0.2",
@@ -56,12 +56,10 @@
     "yjs": "^13.6.24"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
     "start": "GENERATE_SOURCEMAP=false react-scripts start",
-    "build": "GENERATE_SOURCEMAP=false react-scripts build"
+    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
