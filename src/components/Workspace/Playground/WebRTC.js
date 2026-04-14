@@ -71,6 +71,7 @@ const WebRTCComponent = () => {
   const createRoom = async () => {
     if (!localStream) return;
     const roomRef = doc(collection(db, 'rooms'));
+    await openUserMedia();
     console.log('Creating PeerConnection with configuration', configuration);
     const pc = new RTCPeerConnection(configuration);
     setPeerConnection(pc);
@@ -163,13 +164,20 @@ const WebRTCComponent = () => {
       addDoc(calleeCandidatesCollection, event.candidate.toJSON());
     });
 
-    pc.addEventListener('track', (event) => {
-      console.log('Got remote track:', event.streams[0]);
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    });
+    const localStreamRef = useRef(null);
+    const remoteStreamRef = useRef(null);
 
+    // In openUserMedia:
+    const remote = new MediaStream();
+    remoteVideoRef.current.srcObject = remote;
+    remoteStreamRef.current = remote;  // store in ref, not state
+
+    // In track handler (now reads the live ref):
+    pc.addEventListener('track', event => {
+      console.log("🔥 SETTING REMOTE STREAM DIRECTLY");
+
+      setRemoteStream(event.streams[0]); // ✅ THIS IS THE FIX
+    });
     // Set remote description with the offer and create answer
     const roomData = roomSnapshot.data();
     await pc.setRemoteDescription(roomData.offer);
@@ -211,13 +219,13 @@ const WebRTCComponent = () => {
       const roomRef = doc(db, 'rooms', roomId);
       const calleeCandidatesSnapshot = await getDocs(collection(roomRef, 'calleeCandidates'));
       calleeCandidatesSnapshot.forEach(async (candidate) => {
-        await deleteDoc(candidate.ref);
+        // await deleteDoc(candidate.ref);
       });
       const callerCandidatesSnapshot = await getDocs(collection(roomRef, 'callerCandidates'));
       callerCandidatesSnapshot.forEach(async (candidate) => {
-        await deleteDoc(candidate.ref);
+        // await deleteDoc(candidate.ref);
       });
-      await deleteDoc(roomRef);
+      // await deleteDoc(roomRef);
     }
     setPeerConnection(null);
     setRoomId('');

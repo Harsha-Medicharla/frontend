@@ -30,6 +30,18 @@ export default function Playground({problem, setSuccess}) {
   })
 
   useEffect(() => {
+  const saved = localStorage.getItem(`ai-${problem.id}`);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      setAskMessage(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+    } catch {
+      setAskMessage('Try the Ask AI feature');
+    }
+  }
+}, [problem.id]);
+
+  useEffect(() => {
     const updateUserCode = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const code = localStorage.getItem(`code-${problem.id}`);
@@ -56,12 +68,12 @@ export default function Playground({problem, setSuccess}) {
       .select()
       .eq('email',user.email)
       
-      if(data[0].aipoints===0)
-      {
-        toast.error("Insufficient balance", { position: "top-center", autoClose: 3000, theme: "dark" });
-        setAsking(false)
-        return;
-      }
+      // if(data[0].aipoints===0)
+      // {
+      //   toast.error("Insufficient balance", { position: "top-center", autoClose: 3000, theme: "dark" });
+      //   setAsking(false)
+      //   return;
+      // }
       const apiUrl = 'http://127.0.0.1:8000/hints/';
       
       const requestBody = {
@@ -90,6 +102,19 @@ export default function Playground({problem, setSuccess}) {
         }
 
         const responseData = await response.json();
+        if (responseData && responseData.response) {
+          const msg = typeof responseData.response === 'string'
+            ? responseData.response
+            : JSON.stringify(responseData.response);
+          setAskMessage(msg);
+          localStorage.setItem(`ai-${problem.id}`, JSON.stringify(msg));
+          setTestTab(2);
+          toast.success("AI response received!", { position: "top-center", autoClose: 3000, theme: "dark" });
+        } else if (responseData && responseData.error) {
+          setAskMessage(responseData.error.split('\n')[0]); // show first line only
+          setTestTab(2);
+          toast.error("AI quota exceeded or error occurred", { position: "top-center", autoClose: 3000, theme: "dark" });
+        }
         console.log(responseData)
 
         if(responseData)
@@ -100,8 +125,8 @@ export default function Playground({problem, setSuccess}) {
             .from('users')
             .update({ aipoints: data[0].aipoints - 10 })
             .eq('email', user.email)
-
-            setAskMessage(responseData.response)
+            setAskMessage(typeof responseData.response === 'string' ? responseData.response : JSON.stringify(responseData.response))
+            // setAskMessage(responseData.response)
             localStorage.setItem(`ai-${problem.id}`, JSON.stringify(responseData.response));
             setTestTab(2)
           //add to solved array if not present
@@ -289,9 +314,22 @@ export default function Playground({problem, setSuccess}) {
           <div className="font-semibold my-4 pb-10">
             <p className="text-sm font-medium mt-4 text-white">AI Response: </p>
             <div className="w-full cursor-text rounded-lg border px-3 py-[10px] bg-dark-fill-3 border-transparent text-white mt-2">
-              {askMessage.split('\n').map((line, index) => (
+              {/* {askMessage.split('\n').map((line, index) => (
                 <div key={index}>{line}</div>
-              ))}
+              ))} */}
+               {(() => {
+                  try {
+                    const parsed = typeof askMessage === 'string' ? JSON.parse(askMessage) : askMessage;
+                    if (parsed && parsed.error) {
+                      return <p className="text-red-400 text-sm">{parsed.error.split('\n')[0]}</p>;
+                    }
+                  } catch (e) {
+                    // not JSON, render as normal string
+                  }
+                  return String(askMessage).split('\n').map((line, index) => (
+                    <div key={index}>{line}</div>
+                  ));
+                })()}
             </div>
           </div>
           )}
